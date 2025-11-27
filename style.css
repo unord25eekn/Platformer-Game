@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to bottom, #87CEEB, #4CA3DD);
+  overflow: hidden;
+  color: #fff;
+}
+
+canvas {
+  display: block;
+  background: #87CEEB;
+}
+
+/* Optional floating clouds background */
+body::before {
+  content:"";
+  position:absolute;
+  top:-200px;
+  left:0;
+  width:200%;
+  height:200px;
+  background:url('https://i.ibb.co/2nLqYH5/clouds.png') repeat-x;
+  background-size:contain;
+  opacity:0.3;
+  animation: moveClouds 60s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes moveClouds {
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
