@@ -187,7 +187,7 @@ ctx.translate(-cameraX,0);
 
 if(gameState==="playing"){
   // Player
-  ctx.fillStyle="red"; ctx.fillRect(player.x,player.y,player.w,player.h);
+  ctx.fillStyle="blue"; ctx.fillRect(player.x,player.y,player.w,player.h);
 
   // Platforms
   ctx.fillStyle="green"; platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
@@ -196,7 +196,7 @@ if(gameState==="playing"){
   drawFlag(goal);
 
   // Enemies
-  ctx.fillStyle="purple"; enemies.forEach(e=>{if(e.alive) ctx.fillRect(e.x,e.y,e.w,e.h);});
+  ctx.fillStyle="red"; enemies.forEach(e=>{if(e.alive) ctx.fillRect(e.x,e.y,e.w,e.h);});
 
   // Coins
   ctx.fillStyle="orange"; coins.forEach(c=>{if(!c.collected) ctx.fillRect(c.x,c.y,c.w,c.h);});
