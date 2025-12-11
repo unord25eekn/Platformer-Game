@@ -302,7 +302,7 @@ function drawLevelSelectOverlay(){
     const unlocked = unlockedLevels[i];
     ctx.fillStyle = unlocked ? "#2e6fe6" : "#555";
     ctx.fillRect(x+20, by, btnW, btnH);
-    ctx.fillStyle="white"; ctx.font="22px Arial";
+    ctx.fillStyle="white"; ctx.font="20px Arial";
     ctx.fillText("Level "+(i+1), x+30, by+28);
 
     if(bestScores[i]>0){
@@ -317,6 +317,8 @@ function drawLevelSelectOverlay(){
 
 // Final Win Screen (ONLY CENTERED)
 function drawFinalWinScreen(){
+  const totalScore = bestScores.reduce((sum, s) => sum + s, 0);
+
   const w = 600, h = 300;
   const x = (canvas.width - w)/2;
   const y = (canvas.height - h)/2;
@@ -336,7 +338,8 @@ function drawFinalWinScreen(){
 
   ctx.font="24px Arial";
   ctx.fillText("Congratulations! You won the entire game!", x+w/2, y+150);
-  ctx.fillText("Final Score: "+score, x+w/2, y+190);
+  ctx.fillText("Final Score: " + totalScore, x+w/2, y+190);
+
 
   // Button
   ctx.fillStyle="#2e6fe6";
