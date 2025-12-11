@@ -15,14 +15,10 @@ let keys = {};
 let cameraX = 0;
 let score = 0;
 let floatingTexts = [];
+let bestScores = [0, 0, 0];
 
-// Game states: levelSelect, playing, paused, won, dead
-let gameState = "levelSelect";
-
-// Track unlocked levels
-let unlockedLevels = [true, false, false]; // Only level 1 unlocked initially
-
-// Overlay buttons
+let gameState = "levelSelect"; // playing, paused, won, dead, finalWin
+let unlockedLevels = [true, false, false];
 let overlayButtons = [];
 
 // Key handling
@@ -35,7 +31,7 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => keys[e.key] = false);
 
-// Start game function
+// Start game
 function startGame(level) {
   currentLevel = level;
   score = 0;
@@ -44,7 +40,7 @@ function startGame(level) {
   initLevel(level);
 }
 
-// Initialize levels
+// Initialize level
 function initLevel(level) {
   player = { x: 50, y: 300, w: 40, h: 40, dx: 0, dy: 0, onGround: false };
   cameraX = 0;
@@ -59,9 +55,11 @@ function initLevel(level) {
     ];
     goal = {x:1750,y:canvas.height-90,w:40,h:40};
     enemies = [{x:520,y:canvas.height-140,w:40,h:40,alive:true,left:500,right:650,speed:1.5}];
-    coins = [{x:530,y:canvas.height-165,w:20,h:20,collected:false},{x:830,y:canvas.height-190,w:20,h:20,collected:false}];
-  }
-  else if(level===2){
+    coins = [
+      {x:530,y:canvas.height-165,w:20,h:20,collected:false},
+      {x:830,y:canvas.height-190,w:20,h:20,collected:false}
+    ];
+  } else if(level===2){
     platforms = [
       {x:0,y:canvas.height-50,w:300,h:50},
       {x:350,y:canvas.height-150,w:150,h:20},
@@ -83,8 +81,7 @@ function initLevel(level) {
       {x:780,y:canvas.height-390,w:20,h:20,collected:false},
       {x:1000,y:canvas.height-370,w:20,h:20,collected:false}
     ];
-  }
-  else if(level===3){
+  } else if(level===3){
     platforms = [
       {x:0,y:canvas.height-50,w:250,h:50},
       {x:350,y:canvas.height-200,w:150,h:20},
@@ -111,7 +108,10 @@ function initLevel(level) {
   }
 }
 
-// Game loop
+// =========================================================
+// GAME LOOP
+// =========================================================
+
 function gameLoop() {
   if(gameState === "playing") update();
   draw();
@@ -119,40 +119,41 @@ function gameLoop() {
 }
 requestAnimationFrame(gameLoop);
 
-// Update player, enemies, coins
+// =========================================================
+// UPDATE FUNCTION
+// =========================================================
+
 function update(){
-  // Gravity
-  player.dy+=0.8;
-  player.x+=player.dx;
-  player.y+=player.dy;
+  player.dy += 0.8;
+  player.x += player.dx;
+  player.y += player.dy;
 
-  // Controls
-  player.dx=0;
-  if(keys["ArrowLeft"]) player.dx=-4;
-  if(keys["ArrowRight"]) player.dx=4;
-  if(keys["ArrowUp"] && player.onGround){player.dy=-15; player.onGround=false;}
+  player.dx = 0;
+  if(keys["ArrowLeft"]) player.dx = -4;
+  if(keys["ArrowRight"]) player.dx = 4;
+  if(keys["ArrowUp"] && player.onGround){ player.dy=-15; player.onGround=false;}
 
-  // Collision
   player.onGround=false;
   platforms.forEach(p=>{
     if(player.x< p.x+p.w && player.x+player.w>p.x && player.y< p.y+p.h && player.y+player.h>p.y){
-      if(player.dy>0){player.y=p.y-player.h;player.dy=0;player.onGround=true;}
+      if(player.dy>0){ player.y=p.y-player.h; player.dy=0; player.onGround=true;}
     }
   });
 
-  // Enemy collisions
   enemies.forEach(e=>{
     if(!e.alive) return;
     if(player.x<e.x+e.w && player.x+player.w>e.x && player.y<e.y+e.h && player.y+player.h>e.y){
-      if(player.dy>0 && player.y+player.h-player.dy<=e.y){ e.alive=false; player.dy=-10; score+=50; spawnFloatingText("+50",e.x,e.y);}
-      else gameState="dead";
+      if(player.dy>0 && player.y+player.h-player.dy<=e.y){
+        e.alive=false;
+        player.dy=-10;
+        score+=50;
+        spawnFloatingText("+50",e.x,e.y);
+      } else gameState="dead";
     }
-    // patrol
     e.x+=e.speed;
     if(e.x<e.left || e.x+e.w>e.right) e.speed*=-1;
   });
 
-  // Coin collection
   coins.forEach(c=>{
     if(!c.collected && player.x<c.x+c.w && player.x+player.w>c.x && player.y<c.y+c.h && player.y+player.h>c.y){
       c.collected=true;
@@ -161,96 +162,93 @@ function update(){
     }
   });
 
-  // Floating text
-  floatingTexts.forEach(ft=>{ft.y-=1;ft.alpha-=0.02;});
-  floatingTexts=floatingTexts.filter(ft=>ft.alpha>0);
+  floatingTexts.forEach(ft=>{ ft.y-=1; ft.alpha-=0.02; });
+  floatingTexts = floatingTexts.filter(ft=>ft.alpha>0);
 
-  // Camera
   cameraX = player.x - canvas.width/2;
   if(cameraX<0) cameraX=0;
 
-  // Win condition
+  // WIN CONDITION
   if(player.x<goal.x+goal.w && player.x+player.w>goal.x && player.y<goal.y+goal.h && player.y+player.h>goal.y){
-    gameState="won";
-    if(currentLevel<unlockedLevels.length) unlockedLevels[currentLevel]=true; // Unlock next
+      if(currentLevel === unlockedLevels.length){ // last level
+          gameState="finalWin";
+          startConfetti();
+          bestScores[currentLevel-1] = Math.max(score,bestScores[currentLevel-1]);
+      } else {
+          gameState="won";
+          unlockedLevels[currentLevel] = true;
+          bestScores[currentLevel-1] = Math.max(score,bestScores[currentLevel-1]);
+      }
   }
 }
 
 // Floating text
 function spawnFloatingText(text,x,y){ floatingTexts.push({text,x,y,alpha:1}); }
 
-// Draw
+// =========================================================
+// DRAW FUNCTION
+// =========================================================
+
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.save();
-ctx.translate(-cameraX,0);
+  ctx.translate(-cameraX,0);
 
-if(gameState==="playing"){
-  // Player
-  ctx.fillStyle="blue"; ctx.fillRect(player.x,player.y,player.w,player.h);
+  if(gameState==="playing"){
+    ctx.fillStyle="blue"; ctx.fillRect(player.x,player.y,player.w,player.h);
+    ctx.fillStyle="green"; platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+    drawFlag(goal);
+    ctx.fillStyle="red"; enemies.forEach(e=>{if(e.alive) ctx.fillRect(e.x,e.y,e.w,e.h);});
+    ctx.fillStyle="orange"; coins.forEach(c=>{if(!c.collected) ctx.fillRect(c.x,c.y,c.w,c.h);});
 
-  // Platforms
-  ctx.fillStyle="green"; platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+    floatingTexts.forEach(ft=>{
+      ctx.globalAlpha=ft.alpha;
+      ctx.fillStyle="black";
+      ctx.font="20px Arial";
+      ctx.fillText(ft.text,ft.x,ft.y);
+      ctx.globalAlpha=1;
+    });
 
-  // Goal flag
-  drawFlag(goal);
+    // HUD (score top-left) LEFT-ALIGNED
+    ctx.fillStyle="rgba(0,0,0,0.6)";
+    ctx.fillRect(10,10,150,34);
+    ctx.fillStyle="white";
+    ctx.font="18px Arial";
+    ctx.textAlign="start";
+    ctx.fillText("Score:"+score,20,35);
+  }
 
-  // Enemies
-  ctx.fillStyle="red"; enemies.forEach(e=>{if(e.alive) ctx.fillRect(e.x,e.y,e.w,e.h);});
+  ctx.restore();
 
-  // Coins
-  ctx.fillStyle="orange"; coins.forEach(c=>{if(!c.collected) ctx.fillRect(c.x,c.y,c.w,c.h);});
-
-  // Floating text
-  floatingTexts.forEach(ft=>{
-    ctx.globalAlpha=ft.alpha;
-    ctx.fillStyle="black";
-    ctx.font="20px Arial";
-    ctx.fillText(ft.text,ft.x,ft.y);
-    ctx.globalAlpha=1;
-  });
-
-  // HUD: only show score if not in level select
+  // HUD outside camera
   ctx.fillStyle="rgba(0,0,0,0.6)";
   ctx.fillRect(10,10,150,34);
   ctx.fillStyle="white";
   ctx.font="18px Arial";
+  ctx.textAlign="start";
   ctx.fillText("Score:"+score,20,35);
-}
-
-ctx.restore();
-
-
-  // HUD
-  ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(10,10,150,34); ctx.fillStyle="white"; ctx.font="18px Arial"; ctx.fillText("Score:"+score,20,35);
 
   // Overlays
   if(gameState==="paused") drawOverlay("Paused",["Resume","Restart level","Exit to level select"]);
   if(gameState==="dead") drawOverlay("You died",["Restart level","Exit to level select"]);
   if(gameState==="won") drawOverlay("Level complete",["Next level","Restart level","Exit to level select"]);
-  if(gameState==="levelSelect") drawOverlay("Select Level",["Level 1","Level 2","Level 3"],unlockedLevels);
+  if(gameState==="levelSelect") drawLevelSelectOverlay();
+  if(gameState==="finalWin"){ updateConfetti(); drawConfetti(); drawFinalWinScreen(); }
 }
 
+// Flag
 function drawFlag(g){
   const poleHeight = g.h + 60;
   const poleWidth = 8;
-
-  // Flagpole
-  ctx.fillStyle="#555";
-  ctx.fillRect(g.x + g.w/2 - poleWidth/2, g.y - poleHeight + g.h, poleWidth, poleHeight);
-
-  // Flag cloth (triangle)
-  ctx.fillStyle="red";
-  ctx.beginPath();
+  ctx.fillStyle="#555"; ctx.fillRect(g.x + g.w/2 - poleWidth/2, g.y - poleHeight + g.h, poleWidth, poleHeight);
+  ctx.fillStyle="red"; ctx.beginPath();
   ctx.moveTo(g.x + g.w/2, g.y - poleHeight + g.h);
   ctx.lineTo(g.x + g.w/2 + 50, g.y - poleHeight + g.h + 15);
   ctx.lineTo(g.x + g.w/2, g.y - poleHeight + g.h + 30);
-  ctx.closePath();
-  ctx.fill();
+  ctx.closePath(); ctx.fill();
 }
 
-
-// Draw overlay
+// Generic overlay
 function drawOverlay(title, buttonLabels, unlocked){
   const w = Math.min(500,canvas.width*0.8);
   const h = 220+buttonLabels.length*60;
@@ -261,7 +259,9 @@ function drawOverlay(title, buttonLabels, unlocked){
   ctx.fillStyle="#1e1e1e"; ctx.fillRect(x,y,w,h);
   ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);
 
-  ctx.fillStyle="white"; ctx.font="28px Arial"; ctx.fillText(title,x+20,y+50);
+  ctx.fillStyle="white"; ctx.font="28px Arial";
+  ctx.textAlign="start";
+  ctx.fillText(title,x+20,y+50);
 
   overlayButtons=[];
   const btnW = w-40; const btnH=44;
@@ -272,10 +272,82 @@ function drawOverlay(title, buttonLabels, unlocked){
     if(unlocked) enabled = unlocked[i];
     ctx.fillStyle = enabled ? "#2e6fe6" : "#555";
     ctx.fillRect(x+20,by,btnW,btnH);
-    ctx.fillStyle="white"; ctx.font="20px Arial"; ctx.fillText(label,x+30,by+29);
+    ctx.fillStyle="white"; ctx.font="20px Arial";
+    ctx.fillText(label,x+30,by+29);
     overlayButtons.push({label,x:x+20,y:by,w:btnW,h:btnH,enabled});
     by+=btnH+16;
   });
+}
+
+// Level Select Overlay with scores
+function drawLevelSelectOverlay(){
+  const w = Math.min(500,canvas.width*0.8);
+  const h = 300;
+  const x = (canvas.width-w)/2;
+  const y = (canvas.height-h)/2;
+
+  ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#1e1e1e"; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle="#fff"; ctx.strokeRect(x,y,w,h);
+
+  ctx.fillStyle="white"; ctx.font="32px Arial";
+  ctx.textAlign="start";
+  ctx.fillText("Select Level", x+20, y+50);
+
+  overlayButtons=[];
+  const btnW = w-40; const btnH=44;
+  let by = y+90;
+
+  for(let i=0;i<3;i++){
+    const unlocked = unlockedLevels[i];
+    ctx.fillStyle = unlocked ? "#2e6fe6" : "#555";
+    ctx.fillRect(x+20, by, btnW, btnH);
+    ctx.fillStyle="white"; ctx.font="22px Arial";
+    ctx.fillText("Level "+(i+1), x+30, by+28);
+
+    if(bestScores[i]>0){
+      ctx.font="12px Arial";
+      ctx.fillText("Best Score: "+bestScores[i], x+30, by+btnH-4);
+    }
+
+    overlayButtons.push({label:"Level "+(i+1), x:x+20,y:by,w:btnW,h:btnH,enabled:unlocked});
+    by+=btnH+16;
+  }
+}
+
+// Final Win Screen (ONLY CENTERED)
+function drawFinalWinScreen(){
+  const w = 600, h = 300;
+  const x = (canvas.width - w)/2;
+  const y = (canvas.height - h)/2;
+
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = "#1e1e1e";
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle="#fff";
+  ctx.strokeRect(x,y,w,h);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle="white";
+  ctx.font="40px Arial";
+  ctx.fillText("You Beat All Levels!", x+w/2, y+100);
+
+  ctx.font="24px Arial";
+  ctx.fillText("Congratulations! You won the entire game!", x+w/2, y+150);
+  ctx.fillText("Final Score: "+score, x+w/2, y+190);
+
+  // Button
+  ctx.fillStyle="#2e6fe6";
+  ctx.fillRect(x+150, y+230, 300, 50);
+  ctx.fillStyle="white";
+  ctx.font="26px Arial";
+  ctx.fillText("Return to Level Select", x+w/2, y+265);
+
+  overlayButtons = [{ label: "ExitFinal", x:x+150, y:y+230, w:300, h:50, enabled:true }];
+
+  ctx.textAlign = "start"; // RESET ALIGN BACK
 }
 
 // Handle clicks
@@ -313,7 +385,41 @@ function handleOverlayAction(action){
     else if(action==="Restart level") restartLevel();
     else if(action==="Exit to level select") gameState="levelSelect";
   }
+  else if(gameState==="finalWin"){
+    if(action==="ExitFinal") gameState="levelSelect";
+  }
 }
 
 // Restart level
 function restartLevel(){ score=0; floatingTexts=[]; keys={}; gameState="playing"; initLevel(currentLevel); }
+
+// =========================================================
+// CONFETTI SYSTEM
+// =========================================================
+let confetti = [];
+function startConfetti() {
+  confetti = [];
+  for (let i = 0; i < 150; i++) {
+    confetti.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      size: Math.random()*6+4,
+      color: `hsl(${Math.random()*360}, 100%, 50%)`,
+      speedX: (Math.random()-0.5)*5,
+      speedY: Math.random()*3+2
+    });
+  }
+}
+function updateConfetti(){
+  confetti.forEach(c=>{
+    c.x += c.speedX;
+    c.y += c.speedY;
+    if(c.y>canvas.height) c.y=-10;
+  });
+}
+function drawConfetti(){
+  confetti.forEach(c=>{
+    ctx.fillStyle = c.color;
+    ctx.fillRect(c.x,c.y,c.size,c.size);
+  });
+}
